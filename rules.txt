@@ -12,6 +12,7 @@ geosite-epicgames
 geosite-steam@cn
 geosite-category-games@cn
 geosite-cn
+geosite-javdb
 geosite-category-porn
 
 # GeoIP 规则
