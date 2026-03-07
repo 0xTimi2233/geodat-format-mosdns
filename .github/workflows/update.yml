@@ -1,11 +1,10 @@
 name: Build MosDNS Rules
 
-# 触发条件
 on:
   schedule:
     # 每天北京时间凌晨 4 点 (UTC 时间 20:00) 自动执行
     - cron: '0 20 * * *'
-  workflow_dispatch: # 允许在 Actions 页面手动点击运行
+  workflow_dispatch:
 
 jobs:
   build:
@@ -17,57 +16,51 @@ jobs:
       - name: Setup Go Environment
         uses: actions/setup-go@v6
         with:
-          go-version: '1.26.1'
+          go-version: 'stable'
+          cache: false
 
       - name: Install v2dat
-        run: |
-          go install github.com/urlesistiana/v2dat@latest
-          # 验证安装
-          v2dat -h
+        run: go install github.com/urlesistiana/v2dat@latest
 
       - name: Download dat files
         run: |
-          wget -qO geosite.dat https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
-          wget -qO geoip.dat https://github.com/Loyalsoldier/geoip/releases/latest/download/geoip.dat
+          wget -qO geosite.dat https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
+          wget -qO geoip.dat https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.dat
 
       - name: Unpack rules based on rules.txt
         run: |
-          # 创建统一的输出目录
-          mkdir -p publish
+          # 创建 mate 分支需要的目录结构
+          mkdir geosite geoip
           
-          # 逐行读取 rules.txt
           while IFS= read -r line || [ -n "$line" ]; do
-            # 忽略空行和带有 # 的注释行
             [[ -z "$line" || "$line" == \#* ]] && continue
             
-            # 以 '-' 为分隔符，拆分出类型 (geosite/geoip) 和 标签 (cn/apple 等)
             type=$(echo "$line" | cut -d'-' -f1)
             tag=$(echo "$line" | cut -d'-' -f2-)
             
             echo "正在处理: 类别=$type, 标签=$tag"
             
             if [[ "$type" == "geosite" ]]; then
-              v2dat unpack geosite -o publish -f "$tag" geosite.dat
+              # 输出到 geosite 文件夹
+              v2dat unpack geosite -o geosite -f "$tag" geosite.dat
             elif [[ "$type" == "geoip" ]]; then
-              v2dat unpack geoip -o publish -f "$tag" geoip.dat
-            else
-              echo "未知的规则类型: $type"
+              # 输出到 geoip 文件夹
+              v2dat unpack geoip -o geoip -f "$tag" geoip.dat
             fi
           done < rules.txt
 
-      - name: Commit and Push to Repository
+      - name: Force push to mate branch
         run: |
-          # 配置 Git 机器人信息
+          # 初始化全新的 git 环境
+          git init
+          git checkout -b mate
+          
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           
-          # 将生成的 txt 文件加入暂存区
-          git add publish/
+          # 无论文件是否变化，全部添加
+          git add .
+          git commit -m "Auto update mosdns rules $(date +'%Y-%m-%d')"
           
-          # 检查是否有文件变更，如果有则提交并推送
-          if git diff --staged --quiet; then
-            echo "规则无变化，无需提交"
-          else
-            git commit -m "Auto update mosdns rules $(date +'%Y-%m-%d')"
-            git push
-          fi
+          # 使用 force 推送覆盖远程的 mate 分支
+          git push -f https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git mate
