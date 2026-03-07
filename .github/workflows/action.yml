@@ -2,9 +2,14 @@ name: Build MosDNS Rules
 
 on:
   schedule:
-    # 每天北京时间凌晨 4 点 (UTC 时间 20:00) 自动执行
-    - cron: '0 20 * * *'
+    - cron: '0 20 * * *' # UTC 20:00 即北京时间凌晨 04:00
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'rules.txt'
+      - '.github/workflows/update.yml'
 
 jobs:
   build:
@@ -29,8 +34,7 @@ jobs:
 
       - name: Unpack rules based on rules.txt
         run: |
-          # 创建 mate 分支需要的目录结构
-          mkdir geosite geoip
+          mkdir -p temp_publish/geosite temp_publish/geoip
           
           while IFS= read -r line || [ -n "$line" ]; do
             [[ -z "$line" || "$line" == \#* ]] && continue
@@ -41,26 +45,31 @@ jobs:
             echo "正在处理: 类别=$type, 标签=$tag"
             
             if [[ "$type" == "geosite" ]]; then
-              # 输出到 geosite 文件夹
-              v2dat unpack geosite -o geosite -f "$tag" geosite.dat
+              v2dat unpack geosite -o temp_publish/geosite -f "$tag" geosite.dat
             elif [[ "$type" == "geoip" ]]; then
-              # 输出到 geoip 文件夹
-              v2dat unpack geoip -o geoip -f "$tag" geoip.dat
+              v2dat unpack geoip -o temp_publish/geoip -f "$tag" geoip.dat
             fi
           done < rules.txt
 
-      - name: Force push to mate branch
+      - name: Force push to meta branch
         run: |
-          # 初始化全新的 git 环境
+          cd temp_publish
+          
           git init
-          git checkout -b mate
+          git checkout -b meta
           
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           
-          # 无论文件是否变化，全部添加
           git add .
-          git commit -m "Auto update mosdns rules $(date +'%Y-%m-%d')"
           
-          # 使用 force 推送覆盖远程的 mate 分支
-          git push -f https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git mate
+          export TZ='Asia/Shanghai'
+          COMMIT_MSG="Released on $(date +'%Y-%m-%d %H:%M')"
+          
+          git commit -m "$COMMIT_MSG"
+          
+          git push -f https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git meta
+
+      - name: Cleanup
+        run: |
+          rm -rf temp_publish geosite.dat geoip.dat
