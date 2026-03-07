@@ -1,6 +1,18 @@
 # Geosite 规则
-geosite-cn
+geosite-category-ads-all
+geosite-private
+geosite-github
+geosite-connectivity-check
+geosite-category-ntp
+geosite-tracker
+geosite-speedtest
 geosite-apple
+geosite-microsoft
+geosite-epicgames
+geosite-steam@cn
+geosite-category-games@cn
+geosite-cn
+geosite-category-porn
 
 # GeoIP 规则
-geoip-cn
+# geoip-cn
