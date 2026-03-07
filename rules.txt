@@ -1,0 +1,6 @@
+# Geosite 规则
+geosite-cn
+geosite-apple
+
+# GeoIP 规则
+geoip-cn
