@@ -46,8 +46,10 @@ jobs:
             
             if [[ "$type" == "geosite" ]]; then
               v2dat unpack geosite -o temp_publish/geosite -f "$tag" geosite.dat
+              mv "temp_publish/geosite/geosite_${tag}.txt" "temp_publish/geosite/${tag}.txt"
             elif [[ "$type" == "geoip" ]]; then
               v2dat unpack geoip -o temp_publish/geoip -f "$tag" geoip.dat
+              mv "temp_publish/geoip/geoip_${tag}.txt" "temp_publish/geoip/${tag}.txt"
             fi
           done < rules.txt
 
