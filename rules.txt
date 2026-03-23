@@ -6,6 +6,7 @@ geosite-connectivity-check
 geosite-category-ntp
 geosite-tracker
 geosite-speedtest
+geosite-paypal
 geosite-apple
 geosite-microsoft
 geosite-epicgames
